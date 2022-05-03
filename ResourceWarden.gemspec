@@ -3,7 +3,8 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "ResourceWarden/version"
 
 Gem::Specification.new do |spec|
-  spec.name          = "ResourceWarden"
+  spec.name          = "resource_warden"
+  spec.homepage      = "https://github.com/deibele1/ResourceWarden"
   spec.version       = ResourceWarden::VERSION
   spec.authors       = ["Aaron Deibele"]
   spec.email         = ["deibele1@gmail.com"]
