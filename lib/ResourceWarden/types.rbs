@@ -1,23 +1,43 @@
-class Sharer < Thread
-  # calls the resource store to get the next owner of each required resource and builds a block that first joins each
-  # resource sharer then executes the passed block
-  def initialize:(*Resource) -> void
-end
-
 # Transparent wrapper class ignores requests from any caller other than the current owner
-class Resource
-  def initialize: (BasicObject) -> void
-  # returns the current resource owner
-  def owner: -> Thread
-  def chown: (Thread) -> void
+module ResourceWarden
+  class ResourceCell
+    # Creates the cell that will only allow a owning thread to call any method of the resource
+    def initialize: (untyped) -> void
+    # creates a blocking resource key that can only be used once to change the owner of the resource to the calling thread
+    def get_key: -> void
 
-  # non blocking, changes the current heir to the calling thread, returns a proc to join the last which must be run prior executing code
-  def join: -> void
+    # returns the current resource owner
+    private def owner: -> Thread
+    private def chown: (Thread) -> void
 
-end
+    # resource guard method
+    private def method_missing: (Symbol | String, *untyped) -> untyped
+    private def respond_to_missing?: (Symbol | String, *untyped) -> bool
 
-class Store
-  def self.[]:(Symbol) -> Resource
-  def self.synchronize:(*Symbol) -> void
-  def self.create:(Symbol) -> Resource
+    class Unlock
+      def initialize: () -> void
+    end
+  end
+
+  class Warden
+    # warden instance handles a specific resource group
+    def intialize: (*ResourceCell) -> void
+    # synchronize a block with all resource under the wardens management
+    def synchronize: () { () -> BasicObject } -> void
+    # puts a resource under this wardens management
+    def add: (ResourceCell) -> void
+    # returns the resources managed by this warden
+    def resources: () -> Array[ResourceCell]
+    # synchronizes a block with a resource list
+    def self.synchronize:(*Symbol) { () -> BasicObject } -> void
+    # creates a resourceCell either from an object or a cell
+    def self.create:(untyped) -> ResourceCell | () { () -> Object } -> ResourceCell
+  end
+
+  class Key
+    # creates a key this should only be created by a resource cell
+    def initialize: () {() -> ResourceCell::Unlock } -> void
+    # changes the owner of the creating cell to the current thread after waiting for prior threads to complete
+    def use: () -> void
+  end
 end

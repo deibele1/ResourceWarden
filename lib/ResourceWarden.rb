@@ -1,6 +1,4 @@
-require "ResourceWarden/version"
+require_relative "./ResourceWarden/version"
+require_relative "./ResourceWarden/Warden"
 
-module ResourceWarden
-  class Error < StandardError; end
-  # Your code goes here...
-end
+module ResourceWarden; end

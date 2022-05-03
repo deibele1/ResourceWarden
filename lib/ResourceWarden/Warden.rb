@@ -7,46 +7,47 @@
 # Auto joining in this way ensures no resource starvation, no deadlocks, no live-locks and true concurrency.
 # Tasks should be kept small when using this model and all tasks must eventually terminate.
 # This model can solve a generalized dining philosophers problem with any resource exclusion structure.
-require('./ResourceCell')
+require_relative('./ResourceCell')
+module ResourceWarden
+  class Warden
+    @mutex = Mutex.new
+    @registration = Mutex.new
 
-class ResourceWarden
-  @mutex = Mutex.new
-  @registration = Mutex.new
+    def initialize(*resources)
+      @cell_block = resources || []
+      @block_mutex = Mutex.new
+    end
 
-  def initialize(*resources)
-    @cell_block = resources || []
-    @block_mutex = Mutex.new
-  end
+    def add(resource)
+      @block_mutex.synchronize { @cell_block << resource }
+    end
 
-  def add(resource)
-    @block_mutex.synchronize { @cell_block << resource }
-  end
+    def resources
+      @cell_block
+    end
 
-  def resources
-    @cell_block
-  end
+    def synchronize(&block)
+      @block_mutex.synchronize { Warden.synchronize(*@cell_block, &block) }
+    end
 
-  def synchronize(&block)
-    @block_mutex.synchronize { ResourceWarden.synchronize(*@cell_block, &block) }
-  end
-
-  # global synchronization
-  def self.synchronize(*resources, &block)
-    keys = []
-    # creating a virtual thread to guarantee the owning thread is joinable
-    Thread.new do
-      @registration.synchronize { keys = resources.map(&:resource_key) }
-      keys.each(&:use)
-      block.call
-    end.join
-  end
+    # global synchronization
+    def self.synchronize(*resources, &block)
+      keys = []
+      # creating a virtual thread to guarantee the owning thread is joinable
+      Thread.new do
+        @registration.synchronize { keys = resources.map(&:get_key) }
+        keys.each(&:use)
+        block.call
+      end.join
+    end
 
 
-  # creates a resource
-  def self.create(object = nil)
-    @registration.synchronize do
-      item = block_given? ? yield : object
-      ResourceCell.new(item)
+    # creates a resource
+    def self.create(object = nil)
+      @registration.synchronize do
+        item = block_given? ? yield : object
+        ResourceCell.new(item)
+      end
     end
   end
 end
