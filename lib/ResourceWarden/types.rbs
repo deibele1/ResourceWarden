@@ -1,0 +1,23 @@
+class Sharer < Thread
+  # calls the resource store to get the next owner of each required resource and builds a block that first joins each
+  # resource sharer then executes the passed block
+  def initialize:(*Resource) -> void
+end
+
+# Transparent wrapper class ignores requests from any caller other than the current owner
+class Resource
+  def initialize: (BasicObject) -> void
+  # returns the current resource owner
+  def owner: -> Thread
+  def chown: (Thread) -> void
+
+  # non blocking, changes the current heir to the calling thread, returns a proc to join the last which must be run prior executing code
+  def join: -> void
+
+end
+
+class Store
+  def self.[]:(Symbol) -> Resource
+  def self.synchronize:(*Symbol) -> void
+  def self.create:(Symbol) -> Resource
+end
