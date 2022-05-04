@@ -1,4 +1,5 @@
-# Resource Exclusion class
+##
+# Resource Exclusion module
 # A block is passed which will then be encapsulated in a thread immediately joined by the current thread.
 # This allows requests for multiple resources and guarantees a lock on all resources will be granted
 # as soon as all prior virtual threads with a claim on a resource terminate.
@@ -13,24 +14,35 @@ module ResourceWarden
     @mutex = Mutex.new
     @registration = Mutex.new
 
+    ##
+    # takes a list of resources which constitute a block of resources that must be obtained as a group
     def initialize(*resources)
       @cell_block = resources || []
       @block_mutex = Mutex.new
     end
 
+    ##
+    # adds a resource to the exclusive resource block
+    # @param resource [ResourceWarden::ResourceCell]
     def add(resource)
       @block_mutex.synchronize { @cell_block << resource }
     end
 
+    ##
+    # @return [Array<ResourceWarden::ResourceCell>]
     def resources
       @cell_block
     end
 
+    ##
+    # Runs a block of code with exclusive access to all resources in the block
     def synchronize(&block)
       @block_mutex.synchronize { Warden.synchronize(*@cell_block, &block) }
     end
 
-    # global synchronization
+    ##
+    # Runs a block of code with exclusive access to a list of resources
+    # @param resources [ResourceWarden::ResourceCell]
     def self.synchronize(*resources, &block)
       keys = []
       # creating a virtual thread to guarantee the owning thread is joinable
@@ -42,7 +54,8 @@ module ResourceWarden
     end
 
 
-    # creates a resource
+    ##
+    # Takes a object or block and creates a resource from the object or output of the block respectively
     def self.create(object = nil)
       @registration.synchronize do
         item = block_given? ? yield : object
